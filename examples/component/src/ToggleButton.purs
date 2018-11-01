@@ -3,7 +3,7 @@ module ToggleButton where
 import Prelude
 
 import Effect.Console (log)
-import React.Basic (CreateComponent, component, ref, useEffect, useState, (/\))
+import React.Basic (CreateComponent, component, toKey, useEffect, useState, (/\))
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
 
@@ -12,7 +12,7 @@ mkToggleButton = do
   component "ToggleButton" \{ label } -> do
     on /\ setOn <- useState false
 
-    useEffect [ref on] do
+    useEffect [toKey on] do
       log $ "State: " <> if on then "On" else "Off"
       pure (pure unit)
 

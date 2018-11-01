@@ -148,6 +148,12 @@ instance trRecord :: ToKey (Record a) where
 instance trArray :: ToKey (Array a) where
   toKey = unsafeCoerce
 
+instance trNullable :: ToKey (Nullable a) where
+  toKey = unsafeCoerce
+
+instance trMaybe :: ToKey (Maybe a) where
+  toKey a = toKey (toNullable a)
+
 -- | Represents rendered React VDOM (the result of calling `React.createElement`
 -- | in JavaScript).
 -- |

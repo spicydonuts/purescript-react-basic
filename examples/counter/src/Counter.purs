@@ -3,7 +3,7 @@ module Counter where
 import Prelude
 
 import Effect (Effect)
-import React.Basic (CreateComponent, component, ref, useEffect, useState, (/\))
+import React.Basic (CreateComponent, component, toKey, useEffect, useState, (/\))
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
 
@@ -12,7 +12,7 @@ mkCounter = do
   component "Counter" \props -> do
     counter /\ setCounter <- useState 0
 
-    useEffect [ref counter] do
+    useEffect [toKey counter] do
       setDocumentTitle $ "Count: " <> show counter
       pure (pure unit)
 
