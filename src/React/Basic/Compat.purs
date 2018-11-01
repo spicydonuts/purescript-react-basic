@@ -8,7 +8,7 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
-import React.Basic (Component, JSX, element)
+import React.Basic (Component, JSX, element, elementKeyed, empty, keyed, fragment)
 import React.Basic (Tuple(..), component, ref, useEffect, useState) as React
 
 -- | Supports a common subset of the v2 API to ease the upgrade process
