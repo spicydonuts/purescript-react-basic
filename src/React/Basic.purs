@@ -6,9 +6,16 @@ module React.Basic
   , component
   , useState
   , useEffect
+  , useReducer
+  , StateUpdate(..)
   , Ref
-  , class ToRef
-  , ref
+  , readRef
+  , renderRef
+  , writeRef
+  , useRef
+  , Key
+  , class ToKey
+  , toKey
   , empty
   , keyed
   , fragment
@@ -21,11 +28,13 @@ module React.Basic
 
 import Prelude
 
-import Data.Function.Uncurried (Fn2, runFn2)
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
+import Data.Maybe (Maybe)
+import Data.Nullable (Nullable, toNullable)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (tuple2, (/\))
 import Effect (Effect)
-import Effect.Uncurried (EffectFn1, EffectFn2, mkEffectFn1, runEffectFn1, runEffectFn2)
+import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffectFn1, runEffectFn2, runEffectFn3)
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Component props = Component (EffectFn1 props JSX)
@@ -46,57 +55,98 @@ instance bindRender :: Bind Render where
 
 type CreateComponent props = Effect (Component props)
 
-component :: forall props. String -> (props -> Render JSX) -> CreateComponent props
+component
+  :: forall props
+   . String
+  -> (props -> Render JSX)
+  -> CreateComponent props
 component name render =
   let c = Component (mkEffectFn1 (unsafeCoerce render))
    in runEffectFn2 unsafeSetDisplayName name c
 
 -- | useState
-useState :: forall state. state -> Render (Tuple state ((state -> state) -> Effect Unit))
+useState
+  :: forall state
+   . state
+  -> Render (Tuple state ((state -> state) -> Effect Unit))
 useState initialState = Render do
   { value, setValue } <- runEffectFn1 useState_ initialState
   pure (Tuple value (runEffectFn1 setValue))
 
-foreign import useState_
-  :: forall state
-   . EffectFn1
-       state
-       { value :: state
-       , setValue :: EffectFn1 (state -> state) Unit
-       }
-
--- | useState
-useEffect :: Array Ref -> Effect (Effect Unit) -> Render Unit
+-- | useEffect
+useEffect :: Array Key -> Effect (Effect Unit) -> Render Unit
 useEffect refs effect = Render (runEffectFn2 useEffect_ effect refs)
 
-foreign import useEffect_
-  :: EffectFn2
-       (Effect (Effect Unit))
-       (Array Ref)
-       Unit
+-- | useReducer
+-- | TODO: add note about conditionally updating state
+useReducer
+  :: forall state action
+   . ToKey state
+  => (state -> action -> state)
+  -> state
+  -> Maybe action
+  -> Render (Tuple state (action -> Effect Unit))
+useReducer reducer initialState initialAction = Render do
+  { state, dispatch } <- runEffectFn3 useReducer_ (mkFn2 reducer) initialState (toNullable initialAction)
+  pure (Tuple state (runEffectFn1 dispatch))
 
-data Ref
+-- | Used by the `reducer` function to describe the kind of state
+-- | update or side effects desired.
+-- |
+-- | __*See also:* `ComponentSpec`__
+data StateUpdate state
+  = NoUpdate
+  | Update               state
+  | SideEffects                (Effect Unit)
+  | UpdateAndSideEffects state (Effect Unit)
 
-class ToRef a where
-  ref :: a -> Ref
+data Ref a
 
-instance trString :: ToRef String where
-  ref = unsafeCoerce
+readRef :: forall a. Ref a -> Effect a
+readRef = runEffectFn1 readRef_
 
-instance trInt :: ToRef Int where
-  ref = unsafeCoerce
+renderRef :: forall a. Ref a -> Render a
+renderRef ref = Render (readRef ref)
 
-instance trNumber :: ToRef Number where
-  ref = unsafeCoerce
+writeRef :: forall a. Ref a -> a -> Effect Unit
+writeRef = runEffectFn2 writeRef_
 
-instance trBoolean :: ToRef Boolean where
-  ref = unsafeCoerce
+useRef
+  :: forall a
+   . a
+  -> Render (Ref a)
+useRef initialValue = Render do
+  runEffectFn1 useRef_ initialValue
 
-instance trRecord :: ToRef (Record a) where
-  ref = unsafeCoerce
+-- | Keys represent values React uses to check for changes.
+-- | This is done using JavaScript's reference equality (`===`),
+-- | so complicated types may want to implement `ToKey` so that
+-- | it returns a primative like a `String`. A timestamp appended
+-- | to a unique ID, for example. Less strict cases can implement
+-- | `ToKey` using `unsafeCoerce`, while some extreme cases may
+-- | need a hashing or stringifying mechanism.
+data Key
 
-instance trArray :: ToRef (Array a) where
-  ref = unsafeCoerce
+class ToKey a where
+  toKey :: a -> Key
+
+instance trString :: ToKey String where
+  toKey = unsafeCoerce
+
+instance trInt :: ToKey Int where
+  toKey = unsafeCoerce
+
+instance trNumber :: ToKey Number where
+  toKey = unsafeCoerce
+
+instance trBoolean :: ToKey Boolean where
+  toKey = unsafeCoerce
+
+instance trRecord :: ToKey (Record a) where
+  toKey = unsafeCoerce
+
+instance trArray :: ToKey (Array a) where
+  toKey = unsafeCoerce
 
 -- | Represents rendered React VDOM (the result of calling `React.createElement`
 -- | in JavaScript).
@@ -182,6 +232,49 @@ foreign import displayName
 foreign import unsafeSetDisplayName
   :: forall props
    . EffectFn2 String (Component props) (Component props)
+
+foreign import useState_
+  :: forall state
+   . EffectFn1
+       state
+       { value :: state
+       , setValue :: EffectFn1 (state -> state) Unit
+       }
+
+foreign import useEffect_
+  :: EffectFn2
+       (Effect (Effect Unit))
+       (Array Key)
+       Unit
+
+foreign import useReducer_
+  :: forall state action
+   . EffectFn3
+       (Fn2 state action state)
+       state
+       (Nullable action)
+       { state :: state
+       , dispatch :: EffectFn1 action Unit
+       }
+
+foreign import readRef_
+  :: forall a
+   . EffectFn1
+       (Ref a)
+       a
+
+foreign import writeRef_
+  :: forall a
+   . EffectFn2
+       (Ref a)
+       a
+       Unit
+
+foreign import useRef_
+  :: forall a
+   . EffectFn1
+       a
+       (Ref a)
 
 foreign import keyed_ :: Fn2 String JSX JSX
 

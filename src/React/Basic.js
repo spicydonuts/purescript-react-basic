@@ -8,9 +8,22 @@ exports.useState_ = function(initialState) {
   return { value: state[0], setValue: state[1] };
 };
 
-exports.useEffect_ = function(effect, inputs) {
-  React.useEffect(effect, inputs);
+exports.useEffect_ = React.useEffect;
+
+exports.useReducer_ = function(reducer, initialState, initialAction) {
+  var state = React.useReducer(reducer, initialState, initialAction);
+  return { state: state[0], dispatch: state[1] };
 };
+
+exports.readRef_ = function(ref) {
+  return ref.current;
+};
+
+exports.writeRef_ = function(ref, a) {
+  ref.current = a;
+};
+
+exports.useRef_ = React.useRef;
 
 exports.empty = null;
 
