@@ -1,6 +1,8 @@
 module React.Basic
   ( Component
   , Render
+  , render
+  , unsafeRender
   , CreateComponent
   , JSX
   , component
@@ -41,17 +43,21 @@ newtype Component props = Component (EffectFn1 props JSX)
 
 newtype Render a = Render (Effect a)
 
-instance functorRender :: Functor Render where
-  map f (Render a) = Render (map f a)
+derive newtype instance functorRender :: Functor Render
+derive newtype instance applyRender :: Apply Render
+derive newtype instance bindRender :: Bind Render
 
-instance applyRender :: Apply Render where
-  apply (Render f) (Render a) = Render (apply f a)
+-- | render
+render :: JSX -> Render JSX
+render jsx = Render (pure jsx)
 
-instance applicativeRender :: Applicative Render where
-  pure a = Render (pure a)
-
-instance bindRender :: Bind Render where
-  bind (Render m) f = Render (bind m \a -> case f a of Render b -> b)
+-- | Conditional logic is not allowed in Render, making
+-- | Applicative `pure` unsafe. It's still occasionally
+-- | required, however, to extract Render logic into more
+-- | advanced helper functions. Never nest `unsafeRender`
+-- | in a conditionally or dynamically (if, case, for).
+unsafeRender :: forall a. a -> Render a
+unsafeRender a = Render (pure a)
 
 type CreateComponent props = Effect (Component props)
 
@@ -60,8 +66,8 @@ component
    . String
   -> (props -> Render JSX)
   -> CreateComponent props
-component name render =
-  let c = Component (mkEffectFn1 (unsafeCoerce render))
+component name renderFn =
+  let c = Component (mkEffectFn1 (unsafeCoerce renderFn))
    in runEffectFn2 unsafeSetDisplayName name c
 
 -- | useState

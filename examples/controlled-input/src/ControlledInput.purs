@@ -3,7 +3,7 @@ module ControlledInput where
 import Prelude
 
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import React.Basic (CreateComponent, Render, component, fragment, useState, (/\))
+import React.Basic (CreateComponent, Render, component, fragment, render, unsafeRender, useState, (/\))
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, targetValue, timeStamp)
 import React.Basic.Events (EventHandler, merge)
@@ -14,7 +14,7 @@ mkControlledInput =
     firstName <- useInput "hello"
     lastName <- useInput "world"
 
-    pure $ R.form_
+    render $ R.form_
       [ renderInput firstName
       , renderInput lastName
       ]
@@ -29,7 +29,7 @@ mkControlledInput =
 useInput :: String -> Render { onChange :: EventHandler, value :: String, lastChanged :: Maybe Number }
 useInput initialValue = do
   { value, lastChanged } /\ replaceState <- useState { value: initialValue, lastChanged: Nothing }
-  pure
+  unsafeRender
     { onChange: capture
         (merge { targetValue, timeStamp })
         \{ timeStamp, targetValue } -> do
