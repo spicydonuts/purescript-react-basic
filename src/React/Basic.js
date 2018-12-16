@@ -3,27 +3,33 @@
 var React = require("react");
 var Fragment = React.Fragment || "div";
 
-exports.useState_ = function(initialState) {
-  var state = React.useState(initialState);
-  return { value: state[0], setValue: state[1] };
+exports.useState_ = function(tuple, initialState) {
+  var r = React.useState(initialState);
+  var state = r[0];
+  var setState = r[1];
+  return tuple(state)(function(update) {
+    return function() {
+      return setState(update);
+    };
+  });
 };
 
 exports.useEffect_ = React.useEffect;
 
-exports.useReducer_ = function(reducer, initialState, initialAction) {
-  var state = React.useReducer(reducer, initialState, initialAction);
-  return { state: state[0], dispatch: state[1] };
-};
+// exports.useReducer_ = function(reducer, initialState, initialAction) {
+//   var state = React.useReducer(reducer, initialState, initialAction);
+//   return { state: state[0], dispatch: state[1] };
+// };
 
-exports.readRef_ = function(ref) {
-  return ref.current;
-};
+// exports.readRef_ = function(ref) {
+//   return ref.current;
+// };
 
-exports.writeRef_ = function(ref, a) {
-  ref.current = a;
-};
+// exports.writeRef_ = function(ref, a) {
+//   ref.current = a;
+// };
 
-exports.useRef_ = React.useRef;
+// exports.useRef_ = React.useRef;
 
 exports.empty = null;
 

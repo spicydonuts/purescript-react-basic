@@ -9,12 +9,10 @@ import React.Basic.DOM.Events (capture_)
 
 mkToggleButton :: CreateComponent { label :: String }
 mkToggleButton = do
-  component "ToggleButton" \{ label } -> do
+  component "ToggleButton" \bind discard { label } -> do
     on /\ setOn <- useState false
 
-    useEffect [toKey on] do
-      log $ "State: " <> if on then "On" else "Off"
-      pure (pure unit)
+    useEffect [toKey on] $ logState on
 
     render $ R.button
       { onClick: capture_ $ setOn not
@@ -23,3 +21,7 @@ mkToggleButton = do
           , R.text if on then " On" else " Off"
           ]
       }
+  where
+    logState on = do
+      log $ "State: " <> if on then "On" else "Off"
+      pure (pure unit)

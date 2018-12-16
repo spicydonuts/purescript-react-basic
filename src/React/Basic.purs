@@ -1,20 +1,21 @@
 module React.Basic
   ( Component
   , Render
+  , RenderJSX
   , render
-  , unsafeRender
   , CreateComponent
   , JSX
   , component
+  , RenderState
   , useState
+  , RenderEffect
   , useEffect
-  , useReducer
-  , StateUpdate(..)
-  , Ref
-  , readRef
-  , renderRef
-  , writeRef
-  , useRef
+  -- , useReducer
+  -- , Ref
+  -- , readRef
+  -- , renderRef
+  -- , writeRef
+  -- , useRef
   , Key
   , class ToKey
   , toKey
@@ -30,99 +31,103 @@ module React.Basic
 
 import Prelude
 
-import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
+import Control.Applicative.Indexed (class IxApplicative, ipure)
+import Control.Apply.Indexed (class IxApply)
+import Control.Bind.Indexed (class IxBind, ibind)
+import Data.Function.Uncurried (Fn2, runFn2)
+import Data.Functor.Indexed (class IxFunctor)
 import Data.Maybe (Maybe)
 import Data.Nullable (Nullable, toNullable)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (tuple2, (/\))
 import Effect (Effect)
-import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffectFn1, runEffectFn2, runEffectFn3)
+import Effect.Uncurried (EffectFn1, EffectFn2, mkEffectFn1, runEffectFn2)
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Component props = Component (EffectFn1 props JSX)
 
-newtype Render a = Render (Effect a)
+foreign import data Render :: Type -> Type -> Type -> Type
 
-derive newtype instance functorRender :: Functor Render
-derive newtype instance applyRender :: Apply Render
-derive newtype instance bindRender :: Bind Render
+instance ixFunctorRender :: IxFunctor Render where
+  imap = unsafeCoerce (map :: forall a b. (a -> b) -> Effect a -> Effect b)
 
--- | render
-render :: JSX -> Render JSX
-render jsx = Render (pure jsx)
+instance ixApplyRender :: IxApply Render where
+  iapply = unsafeCoerce (apply :: forall a b. Effect (a -> b) -> Effect a -> Effect b)
 
--- | Conditional logic is not allowed in Render, making
--- | Applicative `pure` unsafe. It's still occasionally
--- | required, however, to extract Render logic into more
--- | advanced helper functions. Never nest `unsafeRender`
--- | in a conditionally or dynamically (if, case, for).
-unsafeRender :: forall a. a -> Render a
-unsafeRender a = Render (pure a)
+instance ixBindRender :: IxBind Render where
+  ibind = unsafeCoerce (bind :: forall a b. Effect a -> (a -> Effect b) -> Effect b)
+
+instance ixApplicativeRender :: IxApplicative Render where
+  ipure = unsafeCoerce (pure :: forall a. a -> Effect a)
+
+type IxBindFn = forall m x y z a b. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+
+type RenderFn props = forall hooks. IxBindFn -> IxBindFn -> props -> Render hooks RenderJSX JSX
 
 type CreateComponent props = Effect (Component props)
 
 component
   :: forall props
    . String
-  -> (props -> Render JSX)
+  -> RenderFn props
   -> CreateComponent props
 component name renderFn =
-  let c = Component (mkEffectFn1 (unsafeCoerce renderFn))
+  let c = Component (mkEffectFn1 (unsafeCoerce (renderFn ibind ibind)))
    in runEffectFn2 unsafeSetDisplayName name c
 
--- | useState
+foreign import data RenderState :: Type -> Type -> Type
+
 useState
-  :: forall state
+  :: forall hooks state
    . state
-  -> Render (Tuple state ((state -> state) -> Effect Unit))
-useState initialState = Render do
-  { value, setValue } <- runEffectFn1 useState_ initialState
-  pure (Tuple value (runEffectFn1 setValue))
+  -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
+useState initialState = unsafeCoerce do
+  runEffectFn2 useState_ Tuple initialState
 
--- | useEffect
-useEffect :: Array Key -> Effect (Effect Unit) -> Render Unit
-useEffect refs effect = Render (runEffectFn2 useEffect_ effect refs)
+foreign import data RenderEffect :: Type -> Type
 
--- | useReducer
--- | TODO: add note about conditionally updating state
-useReducer
-  :: forall state action
-   . ToKey state
-  => (state -> action -> state)
-  -> state
-  -> Maybe action
-  -> Render (Tuple state (action -> Effect Unit))
-useReducer reducer initialState initialAction = Render do
-  { state, dispatch } <- runEffectFn3 useReducer_ (mkFn2 reducer) initialState (toNullable initialAction)
-  pure (Tuple state (runEffectFn1 dispatch))
+useEffect
+  :: forall hooks
+   . Array Key
+  -> Effect (Effect Unit)
+  -> Render hooks (RenderEffect hooks) Unit
+useEffect keys effect = unsafeCoerce (runEffectFn2 useEffect_ effect keys)
 
--- | Used by the `reducer` function to describe the kind of state
--- | update or side effects desired.
--- |
--- | __*See also:* `ComponentSpec`__
-data StateUpdate state
-  = NoUpdate
-  | Update               state
-  | SideEffects                (Effect Unit)
-  | UpdateAndSideEffects state (Effect Unit)
+foreign import data RenderJSX :: Type
 
-data Ref a
+render :: forall hooks. JSX -> Render hooks RenderJSX JSX
+render jsx = unsafeCoerce (ipure jsx :: forall a. Render a a JSX)
 
-readRef :: forall a. Ref a -> Effect a
-readRef = runEffectFn1 readRef_
+-- -- | useReducer
+-- -- | TODO: add note about conditionally updating state
+-- useReducer
+--   :: forall state action
+--    . ToKey state
+--   => (state -> action -> state)
+--   -> state
+--   -> Maybe action
+--   -> Render (Tuple state (action -> Effect Unit))
+-- useReducer reducer initialState initialAction = Render do
+--   { state, dispatch } <- runEffectFn3 useReducer_ (mkFn2 reducer) initialState (toNullable initialAction)
+--   pure (Tuple state (runEffectFn1 dispatch))
 
-renderRef :: forall a. Ref a -> Render a
-renderRef ref = Render (readRef ref)
+-- data Ref a
 
-writeRef :: forall a. Ref a -> a -> Effect Unit
-writeRef = runEffectFn2 writeRef_
+-- readRef :: forall a. Ref a -> Effect a
+-- readRef = runEffectFn1 readRef_
 
-useRef
-  :: forall a
-   . a
-  -> Render (Ref a)
-useRef initialValue = Render do
-  runEffectFn1 useRef_ initialValue
+-- renderRef :: forall a. Ref a -> Render a
+-- renderRef ref = Render (readRef ref)
+
+-- writeRef :: forall a. Ref a -> a -> Effect Unit
+-- writeRef = runEffectFn2 writeRef_
+
+-- useRef
+--   :: forall a
+--    . a
+--   -> Render (Ref a)
+-- useRef initialValue = Render do
+--   runEffectFn1 useRef_ initialValue
 
 -- | Keys represent values React uses to check for changes.
 -- | This is done using JavaScript's reference equality (`===`),
@@ -208,8 +213,8 @@ foreign import fragment :: Array JSX -> JSX
 -- | __*See also:* `Component`, `elementKeyed`__
 element
   :: forall props
-   . Component { | props }
-  -> { | props }
+   . Component {| props }
+  -> {| props }
   -> JSX
 element (Component c) props = runFn2 element_ c props
 
@@ -221,7 +226,7 @@ element (Component c) props = runFn2 element_ c props
 -- | __*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 elementKeyed
   :: forall props
-   . Component { | props }
+   . Component {| props }
   -> { key :: String | props }
   -> JSX
 elementKeyed = runFn2 elementKeyed_
@@ -247,11 +252,10 @@ foreign import unsafeSetDisplayName
 
 foreign import useState_
   :: forall state
-   . EffectFn1
+   . EffectFn2
+       (forall a b. a -> b -> Tuple a b)
        state
-       { value :: state
-       , setValue :: EffectFn1 (state -> state) Unit
-       }
+       (Tuple state ((state -> state) -> Effect Unit))
 
 foreign import useEffect_
   :: EffectFn2
@@ -259,34 +263,34 @@ foreign import useEffect_
        (Array Key)
        Unit
 
-foreign import useReducer_
-  :: forall state action
-   . EffectFn3
-       (Fn2 state action state)
-       state
-       (Nullable action)
-       { state :: state
-       , dispatch :: EffectFn1 action Unit
-       }
+-- foreign import useReducer_
+--   :: forall state action
+--    . EffectFn3
+--        (Fn2 state action state)
+--        state
+--        (Nullable action)
+--        { state :: state
+--        , dispatch :: EffectFn1 action Unit
+--        }
 
-foreign import readRef_
-  :: forall a
-   . EffectFn1
-       (Ref a)
-       a
+-- foreign import readRef_
+--   :: forall a
+--    . EffectFn1
+--        (Ref a)
+--        a
 
-foreign import writeRef_
-  :: forall a
-   . EffectFn2
-       (Ref a)
-       a
-       Unit
+-- foreign import writeRef_
+--   :: forall a
+--    . EffectFn2
+--        (Ref a)
+--        a
+--        Unit
 
-foreign import useRef_
-  :: forall a
-   . EffectFn1
-       a
-       (Ref a)
+-- foreign import useRef_
+--   :: forall a
+--    . EffectFn1
+--        a
+--        (Ref a)
 
 foreign import keyed_ :: Fn2 String JSX JSX
 
@@ -296,4 +300,4 @@ foreign import element_
 
 foreign import elementKeyed_
   :: forall props
-   . Fn2 (Component { | props }) { key :: String | props } JSX
+   . Fn2 (Component {| props }) { key :: String | props } JSX
