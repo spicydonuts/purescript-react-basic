@@ -10,7 +10,7 @@ mkToggleButtonContainer :: CreateComponent {}
 mkToggleButtonContainer = do
   toggleButton <- mkToggleButton
 
-  component "Container" \_ _ _ -> do
+  component "Container" \_ ->
     render $ R.div
       { children:
           [ element toggleButton { label: "A" }

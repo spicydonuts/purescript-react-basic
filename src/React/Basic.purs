@@ -1,6 +1,8 @@
 module React.Basic
   ( Component
   , Render
+  , bind
+  , discard
   , RenderJSX
   , render
   , CreateComponent
@@ -29,7 +31,8 @@ module React.Basic
   , module Data.Tuple.Nested
   ) where
 
-import Prelude
+import Prelude hiding (bind, discard)
+import Prelude (bind) as Prelude
 
 import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
@@ -55,24 +58,26 @@ instance ixApplyRender :: IxApply Render where
   iapply = unsafeCoerce (apply :: forall a b. Effect (a -> b) -> Effect a -> Effect b)
 
 instance ixBindRender :: IxBind Render where
-  ibind = unsafeCoerce (bind :: forall a b. Effect a -> (a -> Effect b) -> Effect b)
+  ibind = unsafeCoerce (Prelude.bind :: forall a b. Effect a -> (a -> Effect b) -> Effect b)
+
+bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+bind = ibind
+
+discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+discard = ibind
 
 instance ixApplicativeRender :: IxApplicative Render where
   ipure = unsafeCoerce (pure :: forall a. a -> Effect a)
-
-type IxBindFn = forall m x y z a b. IxBind m => m x y a -> (a -> m y z b) -> m x z b
-
-type RenderFn props = forall hooks. IxBindFn -> IxBindFn -> props -> Render hooks RenderJSX JSX
 
 type CreateComponent props = Effect (Component props)
 
 component
   :: forall props
    . String
-  -> RenderFn props
+  -> (forall hooks. props -> Render hooks RenderJSX JSX)
   -> CreateComponent props
 component name renderFn =
-  let c = Component (mkEffectFn1 (unsafeCoerce (renderFn ibind ibind)))
+  let c = Component (mkEffectFn1 (unsafeCoerce renderFn))
    in runEffectFn2 unsafeSetDisplayName name c
 
 foreign import data RenderState :: Type -> Type -> Type

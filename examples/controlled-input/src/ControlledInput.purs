@@ -6,13 +6,14 @@ import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import React.Basic (CreateComponent, Render, RenderState, component, fragment, render, useState, (/\))
+import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, targetValue, timeStamp)
 import React.Basic.Events (EventHandler, merge)
 
 mkControlledInput :: CreateComponent {}
 mkControlledInput =
-  component "ControlledInput" \bind discard props -> do
+  component "ControlledInput" \props -> React.do
     firstName <- useInput "hello"
     lastName <- useInput "world"
 
@@ -29,21 +30,23 @@ mkControlledInput =
         ]
 
 type InputState state = { value :: String, lastChanged :: Maybe Number | state }
-useInput :: forall hooks. String -> Render hooks (RenderState (InputState ()) hooks) (InputState ( onChange :: EventHandler ))
-useInput initialValue =
-  let
-    bind = ibind
-    discard = ibind
-  in do
-    { value, lastChanged } /\ replaceState <- useState { value: initialValue, lastChanged: Nothing }
-    ipure
-      { onChange: capture
-          (merge { targetValue, timeStamp })
-          \{ timeStamp, targetValue } -> do
-            replaceState \_ ->
-              { value: fromMaybe "" targetValue
-              , lastChanged: Just timeStamp
-              }
-      , value
-      , lastChanged
-      }
+
+useInput
+  :: forall hooks
+   . String
+  -> Render hooks
+       (RenderState (InputState ()) hooks)
+       (InputState ( onChange :: EventHandler ))
+useInput initialValue = React.do
+  { value, lastChanged } /\ replaceState <- useState { value: initialValue, lastChanged: Nothing }
+  ipure
+    { onChange: capture
+        (merge { targetValue, timeStamp })
+        \{ timeStamp, targetValue } -> do
+          replaceState \_ ->
+            { value: fromMaybe "" targetValue
+            , lastChanged: Just timeStamp
+            }
+    , value
+    , lastChanged
+    }

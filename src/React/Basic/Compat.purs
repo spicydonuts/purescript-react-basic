@@ -9,7 +9,7 @@ import Prelude
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
 import React.Basic (Component, JSX, RenderEffect, RenderState, element, elementKeyed, empty, fragment, keyed)
-import React.Basic (Tuple(..), component, render, toKey, useEffect, useState) as React
+import React.Basic (Tuple(..), bind, discard, component, render, toKey, useEffect, useState) as React
 
 -- | Supports a common subset of the v2 API to ease the upgrade process
 component
@@ -21,15 +21,12 @@ component
      }
   -> Component {| props }
 component { displayName, initialState, receiveProps, render } = unsafePerformEffect do
-  React.component displayName \bind discard props -> do
+  React.component displayName \props -> React.do
     React.Tuple state setState <- React.useState initialState
-    React.useEffect [React.toKey props, React.toKey state]
-      (runReceiveProps { props, state, setState })
+    React.useEffect [React.toKey props, React.toKey state] do
+      receiveProps { props, state, setState }
+      pure (pure unit)
     React.render (render { props, state, setState })
-  where
-    runReceiveProps self = do
-      receiveProps self
-      pure $ pure unit
 
 -- | Supports a common subset of the v2 API to ease the upgrade process
 stateless
@@ -39,5 +36,5 @@ stateless
      }
   -> Component {| props }
 stateless { displayName, render } = unsafePerformEffect do
-  React.component displayName \bind discard props -> do
+  React.component displayName \props -> React.do
     React.render (render props)
