@@ -3,6 +3,7 @@ module React.Basic
   , Render
   , bind
   , discard
+  , pure
   , RenderJSX
   , render
   , CreateComponent
@@ -12,7 +13,8 @@ module React.Basic
   , useState
   , RenderEffect
   , useEffect
-  -- , useReducer
+  , RenderReducer
+  , useReducer
   -- , Ref
   -- , readRef
   -- , renderRef
@@ -31,20 +33,20 @@ module React.Basic
   , module Data.Tuple.Nested
   ) where
 
-import Prelude hiding (bind, discard)
-import Prelude (bind) as Prelude
+import Prelude hiding (bind, discard, pure)
 
 import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind, ibind)
-import Data.Function.Uncurried (Fn2, runFn2)
+import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Maybe (Maybe)
 import Data.Nullable (Nullable, toNullable)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (tuple2, (/\))
 import Effect (Effect)
-import Effect.Uncurried (EffectFn1, EffectFn2, mkEffectFn1, runEffectFn2)
+import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn4, mkEffectFn1, runEffectFn2, runEffectFn4)
+import Prelude (bind, pure) as Prelude
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Component props = Component (EffectFn1 props JSX)
@@ -66,8 +68,11 @@ bind = ibind
 discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
 discard = ibind
 
+pure :: forall a x m. IxApplicative m => a -> m x x a
+pure = ipure
+
 instance ixApplicativeRender :: IxApplicative Render where
-  ipure = unsafeCoerce (pure :: forall a. a -> Effect a)
+  ipure = unsafeCoerce (Prelude.pure :: forall a. a -> Effect a)
 
 type CreateComponent props = Effect (Component props)
 
@@ -87,7 +92,7 @@ useState
    . state
   -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
 useState initialState = unsafeCoerce do
-  runEffectFn2 useState_ Tuple initialState
+  runEffectFn2 useState_ (mkFn2 Tuple) initialState
 
 foreign import data RenderEffect :: Type -> Type
 
@@ -103,18 +108,23 @@ foreign import data RenderJSX :: Type
 render :: forall hooks. JSX -> Render hooks RenderJSX JSX
 render jsx = unsafeCoerce (ipure jsx :: forall a. Render a a JSX)
 
--- -- | useReducer
--- -- | TODO: add note about conditionally updating state
--- useReducer
---   :: forall state action
---    . ToKey state
---   => (state -> action -> state)
---   -> state
---   -> Maybe action
---   -> Render (Tuple state (action -> Effect Unit))
--- useReducer reducer initialState initialAction = Render do
---   { state, dispatch } <- runEffectFn3 useReducer_ (mkFn2 reducer) initialState (toNullable initialAction)
---   pure (Tuple state (runEffectFn1 dispatch))
+foreign import data RenderReducer :: Type -> Type -> Type -> Type
+
+-- | useReducer
+-- | TODO: add note about conditionally updating state
+useReducer
+  :: forall hooks state action
+   . ToKey state
+  => Maybe action
+  -> state
+  -> (state -> action -> state)
+  -> Render hooks (RenderReducer state action hooks) (Tuple state (action -> Effect Unit))
+useReducer initialAction initialState reducer = unsafeCoerce do
+  runEffectFn4 useReducer_
+    (mkFn2 Tuple)
+    (mkFn2 reducer)
+    initialState
+    (toNullable initialAction)
 
 -- data Ref a
 
@@ -258,7 +268,7 @@ foreign import unsafeSetDisplayName
 foreign import useState_
   :: forall state
    . EffectFn2
-       (forall a b. a -> b -> Tuple a b)
+       (forall a b. Fn2 a b (Tuple a b))
        state
        (Tuple state ((state -> state) -> Effect Unit))
 
@@ -268,15 +278,14 @@ foreign import useEffect_
        (Array Key)
        Unit
 
--- foreign import useReducer_
---   :: forall state action
---    . EffectFn3
---        (Fn2 state action state)
---        state
---        (Nullable action)
---        { state :: state
---        , dispatch :: EffectFn1 action Unit
---        }
+foreign import useReducer_
+  :: forall state action
+   . EffectFn4
+       (forall a b. Fn2 a b (Tuple a b))
+       (Fn2 state action state)
+       state
+       (Nullable action)
+       (Tuple state (action -> Effect Unit))
 
 -- foreign import readRef_
 --   :: forall a

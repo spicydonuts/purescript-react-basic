@@ -3,7 +3,6 @@ module ControlledInput where
 import Prelude
 
 import Control.Applicative.Indexed (ipure)
-import Control.Bind.Indexed (ibind)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import React.Basic (CreateComponent, Render, RenderState, component, fragment, render, useState, (/\))
 import React.Basic as React
