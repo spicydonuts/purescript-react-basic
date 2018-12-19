@@ -46,15 +46,15 @@ exports.useReducer_ = function(tuple, reducer, initialState, initialAction) {
   });
 };
 
-// exports.readRef_ = function(ref) {
-//   return ref.current;
-// };
+exports.useRef_ = React.useRef;
 
-// exports.writeRef_ = function(ref, a) {
-//   ref.current = a;
-// };
+exports.readRef_ = function(ref) {
+  return ref.current;
+};
 
-// exports.useRef_ = React.useRef;
+exports.writeRef_ = function(ref, a) {
+  ref.current = a;
+};
 
 exports.empty = null;
 

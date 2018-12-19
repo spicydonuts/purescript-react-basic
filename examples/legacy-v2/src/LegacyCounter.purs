@@ -2,7 +2,7 @@ module LegacyCounter where
 
 import Prelude
 
-import React.Basic.Compat (Component, component, element, stateless)
+import React.Basic.Compat (Component, RenderStatefulComponent, component, element, stateless)
 import React.Basic.DOM as R
 import React.Basic.Events as Events
 
@@ -11,7 +11,7 @@ type Props =
   }
 
 -- | checks `component`
-legacyCounter :: Component Props
+legacyCounter :: Component Props (RenderStatefulComponent { counter :: Int })
 legacyCounter = component { displayName: "LegacyCounter", initialState, receiveProps, render }
   where
     initialState =
@@ -29,7 +29,7 @@ legacyCounter = component { displayName: "LegacyCounter", initialState, receiveP
         }
 
 -- | checks `stateless`
-buttonLabel :: Component { label :: String, counter :: Int }
+buttonLabel :: Component { label :: String, counter :: Int } Unit
 buttonLabel = stateless { displayName: "ButtonLabel", render }
   where
     render props =

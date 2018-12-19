@@ -10,7 +10,7 @@ import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, targetValue, timeStamp)
 import React.Basic.Events (EventHandler, merge)
 
-mkControlledInput :: CreateComponent {}
+mkControlledInput :: CreateComponent {} (RenderInput () (RenderInput () Unit))
 mkControlledInput =
   component "ControlledInput" \props -> React.do
     firstName <- useInput "hello"
@@ -30,11 +30,12 @@ mkControlledInput =
 
 type InputState state = { value :: String, lastChanged :: Maybe Number | state }
 
+type RenderInput state hooks = RenderState (InputState state) hooks
 useInput
   :: forall hooks
    . String
   -> Render hooks
-       (RenderState (InputState ()) hooks)
+       (RenderInput () hooks)
        (InputState ( onChange :: EventHandler ))
 useInput initialValue = React.do
   { value, lastChanged } /\ replaceState <- useState { value: initialValue, lastChanged: Nothing }

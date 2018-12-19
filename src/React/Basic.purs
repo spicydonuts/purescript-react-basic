@@ -15,14 +15,18 @@ module React.Basic
   , useEffect
   , RenderReducer
   , useReducer
-  -- , Ref
-  -- , readRef
-  -- , renderRef
-  -- , writeRef
-  -- , useRef
+  , RenderRef
+  , Ref
+  , readRef
+  , readRefMaybe
+  , writeRef
+  , renderRef
+  , renderRefMaybe
+  , useRef
   , Key
   , class ToKey
   , toKey
+  , unsafeToKey
   , empty
   , keyed
   , fragment
@@ -33,7 +37,7 @@ module React.Basic
   , module Data.Tuple.Nested
   ) where
 
-import Prelude hiding (bind, discard, pure)
+import Prelude hiding (bind,discard,pure)
 
 import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
@@ -41,26 +45,26 @@ import Control.Bind.Indexed (class IxBind, ibind)
 import Data.Function.Uncurried (Fn2, mkFn2, runFn2)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Maybe (Maybe)
-import Data.Nullable (Nullable, toNullable)
+import Data.Nullable (Nullable, toMaybe, toNullable)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (tuple2, (/\))
 import Effect (Effect)
-import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn4, mkEffectFn1, runEffectFn2, runEffectFn4)
+import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffectFn1, runEffectFn2, runEffectFn3)
 import Prelude (bind, pure) as Prelude
 import Unsafe.Coerce (unsafeCoerce)
 
-newtype Component props = Component (EffectFn1 props JSX)
+newtype Component props hooks = Component (EffectFn1 props JSX)
 
-foreign import data Render :: Type -> Type -> Type -> Type
+newtype Render x y a = Render (Effect a)
 
 instance ixFunctorRender :: IxFunctor Render where
-  imap = unsafeCoerce (map :: forall a b. (a -> b) -> Effect a -> Effect b)
+  imap f (Render a) = Render (map f a)
 
 instance ixApplyRender :: IxApply Render where
-  iapply = unsafeCoerce (apply :: forall a b. Effect (a -> b) -> Effect a -> Effect b)
+  iapply (Render f) (Render a) = Render (apply f a)
 
 instance ixBindRender :: IxBind Render where
-  ibind = unsafeCoerce (Prelude.bind :: forall a b. Effect a -> (a -> Effect b) -> Effect b)
+  ibind (Render m) f = Render (Prelude.bind m \a -> case f a of Render b -> b)
 
 bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
 bind = ibind
@@ -72,17 +76,17 @@ pure :: forall a x m. IxApplicative m => a -> m x x a
 pure = ipure
 
 instance ixApplicativeRender :: IxApplicative Render where
-  ipure = unsafeCoerce (Prelude.pure :: forall a. a -> Effect a)
+  ipure a = Render (Prelude.pure a)
 
-type CreateComponent props = Effect (Component props)
+type CreateComponent props hooks = Effect (Component props hooks)
 
 component
-  :: forall props
+  :: forall hooks props
    . String
-  -> (forall hooks. props -> Render hooks RenderJSX JSX)
-  -> CreateComponent props
+  -> (props -> Render Unit (RenderJSX hooks) JSX)
+  -> CreateComponent props hooks
 component name renderFn =
-  let c = Component (mkEffectFn1 (unsafeCoerce renderFn))
+  let c = Component (mkEffectFn1 (\props -> case renderFn props of Render a -> a))
    in runEffectFn2 unsafeSetDisplayName name c
 
 foreign import data RenderState :: Type -> Type -> Type
@@ -91,7 +95,7 @@ useState
   :: forall hooks state
    . state
   -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
-useState initialState = unsafeCoerce do
+useState initialState = Render do
   runEffectFn2 useState_ (mkFn2 Tuple) initialState
 
 foreign import data RenderEffect :: Type -> Type
@@ -101,12 +105,12 @@ useEffect
    . Array Key
   -> Effect (Effect Unit)
   -> Render hooks (RenderEffect hooks) Unit
-useEffect keys effect = unsafeCoerce (runEffectFn2 useEffect_ effect keys)
+useEffect keys effect = Render (runEffectFn2 useEffect_ effect keys)
 
-foreign import data RenderJSX :: Type
+foreign import data RenderJSX :: Type -> Type
 
-render :: forall hooks. JSX -> Render hooks RenderJSX JSX
-render jsx = unsafeCoerce (ipure jsx :: forall a. Render a a JSX)
+render :: forall hooks. JSX -> Render hooks (RenderJSX hooks) JSX
+render jsx = Render (Prelude.pure jsx)
 
 foreign import data RenderReducer :: Type -> Type -> Type -> Type
 
@@ -115,67 +119,76 @@ foreign import data RenderReducer :: Type -> Type -> Type -> Type
 useReducer
   :: forall hooks state action
    . ToKey state
-  => Maybe action
-  -> state
+  => state
   -> (state -> action -> state)
   -> Render hooks (RenderReducer state action hooks) (Tuple state (action -> Effect Unit))
-useReducer initialAction initialState reducer = unsafeCoerce do
-  runEffectFn4 useReducer_
+useReducer initialState reducer = Render do
+  runEffectFn3 useReducer_
     (mkFn2 Tuple)
     (mkFn2 reducer)
     initialState
-    (toNullable initialAction)
 
--- data Ref a
+foreign import data RenderRef :: Type -> Type -> Type
 
--- readRef :: forall a. Ref a -> Effect a
--- readRef = runEffectFn1 readRef_
+foreign import data Ref :: Type -> Type
 
--- renderRef :: forall a. Ref a -> Render a
--- renderRef ref = Render (readRef ref)
+useRef
+  :: forall hooks a
+   . a
+  -> Render hooks (RenderRef a hooks) (Ref a)
+useRef initialValue = Render do
+  runEffectFn1 useRef_ initialValue
 
--- writeRef :: forall a. Ref a -> a -> Effect Unit
--- writeRef = runEffectFn2 writeRef_
+readRef :: forall a. Ref a -> Effect a
+readRef = runEffectFn1 readRef_
 
--- useRef
---   :: forall a
---    . a
---   -> Render (Ref a)
--- useRef initialValue = Render do
---   runEffectFn1 useRef_ initialValue
+readRefMaybe :: forall a. Ref (Nullable a) -> Effect (Maybe a)
+readRefMaybe a = map toMaybe (readRef a)
+
+writeRef :: forall a. Ref a -> a -> Effect Unit
+writeRef = runEffectFn2 writeRef_
+
+renderRef :: forall hooks a. Ref a -> Render hooks hooks a
+renderRef ref = Render (readRef ref)
+
+renderRefMaybe :: forall hooks a. Ref (Nullable a) -> Render hooks hooks (Maybe a)
+renderRefMaybe a = Render (readRefMaybe a)
 
 -- | Keys represent values React uses to check for changes.
 -- | This is done using JavaScript's reference equality (`===`),
 -- | so complicated types may want to implement `ToKey` so that
 -- | it returns a primative like a `String`. A timestamp appended
 -- | to a unique ID, for example. Less strict cases can implement
--- | `ToKey` using `unsafeCoerce`, while some extreme cases may
+-- | `ToKey` using `unsafeToKey`, while some extreme cases may
 -- | need a hashing or stringifying mechanism.
 data Key
 
 class ToKey a where
   toKey :: a -> Key
 
+unsafeToKey :: forall a. a -> Key
+unsafeToKey = unsafeCoerce
+
 instance trString :: ToKey String where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trInt :: ToKey Int where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trNumber :: ToKey Number where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trBoolean :: ToKey Boolean where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trRecord :: ToKey (Record a) where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trArray :: ToKey (Array a) where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trNullable :: ToKey (Nullable a) where
-  toKey = unsafeCoerce
+  toKey = unsafeToKey
 
 instance trMaybe :: ToKey (Maybe a) where
   toKey a = toKey (toNullable a)
@@ -227,8 +240,8 @@ foreign import fragment :: Array JSX -> JSX
 -- |
 -- | __*See also:* `Component`, `elementKeyed`__
 element
-  :: forall props
-   . Component {| props }
+  :: forall hooks props
+   . Component {| props } hooks
   -> {| props }
   -> JSX
 element (Component c) props = runFn2 element_ c props
@@ -240,8 +253,8 @@ element (Component c) props = runFn2 element_ c props
 -- |
 -- | __*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 elementKeyed
-  :: forall props
-   . Component {| props }
+  :: forall hooks props
+   . Component {| props } hooks
   -> { key :: String | props }
   -> JSX
 elementKeyed = runFn2 elementKeyed_
@@ -251,8 +264,8 @@ elementKeyed = runFn2 elementKeyed_
 -- |
 -- | __*See also:* `displayNameFromSelf`, `createComponent`__
 foreign import displayName
-  :: forall props
-   . Component props
+  :: forall hooks props
+   . Component props hooks
   -> String
 
 
@@ -262,8 +275,8 @@ foreign import displayName
 -- |
 
 foreign import unsafeSetDisplayName
-  :: forall props
-   . EffectFn2 String (Component props) (Component props)
+  :: forall hooks props
+   . EffectFn2 String (Component props hooks) (Component props hooks)
 
 foreign import useState_
   :: forall state
@@ -280,31 +293,30 @@ foreign import useEffect_
 
 foreign import useReducer_
   :: forall state action
-   . EffectFn4
+   . EffectFn3
        (forall a b. Fn2 a b (Tuple a b))
        (Fn2 state action state)
        state
-       (Nullable action)
        (Tuple state (action -> Effect Unit))
 
--- foreign import readRef_
---   :: forall a
---    . EffectFn1
---        (Ref a)
---        a
+foreign import readRef_
+  :: forall a
+   . EffectFn1
+       (Ref a)
+       a
 
--- foreign import writeRef_
---   :: forall a
---    . EffectFn2
---        (Ref a)
---        a
---        Unit
+foreign import writeRef_
+  :: forall a
+   . EffectFn2
+       (Ref a)
+       a
+       Unit
 
--- foreign import useRef_
---   :: forall a
---    . EffectFn1
---        a
---        (Ref a)
+foreign import useRef_
+  :: forall a
+   . EffectFn1
+       a
+       (Ref a)
 
 foreign import keyed_ :: Fn2 String JSX JSX
 
@@ -313,5 +325,5 @@ foreign import element_
    . Fn2 (EffectFn1 { | props } JSX) { | props } JSX
 
 foreign import elementKeyed_
-  :: forall props
-   . Fn2 (Component {| props }) { key :: String | props } JSX
+  :: forall hooks props
+   . Fn2 (Component {| props } hooks) { key :: String | props } JSX

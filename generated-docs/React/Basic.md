@@ -1,317 +1,60 @@
 ## Module React.Basic
 
-#### `ComponentSpec`
-
-``` purescript
-type ComponentSpec props state initialState action = { initialState :: initialState, update :: Self props state action -> action -> StateUpdate props state action, render :: Self props state action -> JSX, shouldUpdate :: Self props state action -> props -> state -> Boolean, didMount :: Self props state action -> Effect Unit, didUpdate :: Self props state action -> Effect Unit, willUnmount :: Self props state action -> Effect Unit, "$$type" :: ComponentType props state action }
-```
-
-`ComponentSpec` represents a React-Basic component implementation.
-
-These are the properties your component definition may override
-with specific implementations. None are required to be overridden, unless
-an overridden function interacts with `state`, in which case `initialState`
-is required (the compiler enforces this). While you _can_ use `state` and
-dispatch actions without defining `update`, doing so doesn't make much sense
-so the default `update` implementation will emit a warning.
-
-- `initialState`
-  - The component's starting state.
-  - Avoid mirroring prop values in state.
-- `update`
-  - All state updates go through `update`.
-  - `update` is called when `send` is used to dispatch an action.
-  - State changes are described using `StateUpdate`. Only `Update` and `UpdateAndSideEffects` will cause rerenders and a call to `didUpdate`.
-  - Side effects requested are only invoked _after_ any corrosponding state update has completed its render cycle and the changes have been applied. This means it is safe to interact with the DOM in a side effect, for example.
-- `render`
-  - Takes a current snapshot of the component (`Self`) and converts it to renderable `JSX`.
-- `shouldUpdate`
-  - Can be useful for occasional performance optimizations. Rarely necessary.
-- `didMount`
-  - The React component's `componentDidMount` lifecycle. Useful for initiating an action on first mount, such as fetching data from a server.
-- `didUpdate`
-  - The React component's `componentDidUpdate` lifecycle. Rarely necessary.
-- `willUnmount`
-  - The React component's `componentWillUpdate` lifecycle. Any subscriptions or timers created in `didMount` or `didUpdate` should be disposed of here.
-
-The component spec is generally not exported from your component
-module and this type is rarely used explicitly. The simplified alias
-`Component` is usually sufficient, and `make` will validate whether
-your component's types line up.
-
-For example:
-
-```purs
-component :: Component
-component = createComponent "Counter"
-
-type Props =
-  { label :: String
-  }
-
-data Action
-  = Increment
-
-counter :: Props -> JSX
-counter = make component
-  { initialState = { counter: 0 }
-
-  , update = \self action -> case action of
-      Increment ->
-        Update self.state { counter = self.state.counter + 1 }
-
-  , render = \self ->
-      R.button
-        { onClick: capture_ self Increment
-        , children: [ R.text (self.props.label <> ": " <> show self.state.counter) ]
-        }
-  }
-```
-
-This example component overrides `initialState`, `update`, and `render`.
-
-__*Note:* A `ComponentSpec` is *not* a valid React component by itself. If you would like to use
-  a React-Basic component from JavaScript, use `toReactComponent`.__
-
-__*Note:* `$$type` is for internal use only. It needs to be on the type to
-  preserve its existence during a record update, as in the example above.__
-
-__*See also:* `Component`, `ComponentSpec`, `make`, `makeStateless`__
-
-#### `createComponent`
-
-``` purescript
-createComponent :: forall props state action. String -> ComponentSpec props state Unit action
-```
-
-Creates a `ComponentSpec` with a given Display Name.
-
-The resulting component spec is usually given the simplified `Component` type:
-
-```purs
-component :: Component
-component = createComponent "Counter"
-```
-
-This function should be used at the module level and considered side effecting.
-This is because React uses referential equality when deciding whether a new
-`JSX` tree is a valid update, or if it needs to be replaced entirely
-(expensive and clears component state lower in the tree).
-
-__*Note:* A `Component` is *not* a valid React component by itself. If you would like to use
-  a React-Basic component from JavaScript, use `toReactComponent`.__
-
-__*See also:* `Component`, `ComponentSpec`, `make`, `makeStateless`__
-
 #### `Component`
 
 ``` purescript
-type Component = forall props state action. ComponentSpec props state Unit action
+newtype Component props hooks
 ```
 
-A simplified alias for `ComponentSpec`. This type is usually used to represent
-the default component type returned from `createComponent`.
-
-#### `ComponentType`
+#### `Render`
 
 ``` purescript
-data ComponentType props state action
+newtype Render x y a
 ```
 
-Opaque component information for internal use.
+##### Instances
+``` purescript
+IxFunctor Render
+IxApply Render
+IxBind Render
+IxApplicative Render
+```
 
-__*For the curious:* This is the "class" React will use to render and
-  identify the component. It receives the `ComponentSpec` as a prop and knows
-  how to defer behavior to it. It requires very specific props and is not useful by
-  itself from JavaScript. For JavaScript interop, see `toReactComponent`.__
-
-#### `StateUpdate`
+#### `bind`
 
 ``` purescript
-data StateUpdate props state action
-  = NoUpdate
-  | Update state
-  | SideEffects (Self props state action -> Effect Unit)
-  | UpdateAndSideEffects state (Self props state action -> Effect Unit)
+bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
 ```
 
-Used by the `update` function to describe the kind of state update and/or side
-effects desired.
-
-__*See also:* `ComponentSpec`__
-
-#### `Self`
+#### `discard`
 
 ``` purescript
-type Self props state action = { props :: props, state :: state, instance_ :: ReactComponentInstance }
+discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
 ```
 
-`Self` represents the component instance at a particular point in time.
-
-- `props`
-  - A snapshot of `props` taken when this `Self` was created.
-- `state`
-  - A snapshot of `state` taken when this `Self` was created.
-- `instance_`
-  - Unsafe escape hatch to the underlying component instance (`this` in the JavaScript React paradigm). Avoid as much as possible, but it's still frequently better than rewriting an entire component in JavaScript.
-
-__*See also:* `ComponentSpec`, `send`, `capture`, `readProps`, `readState`__
-
-#### `send`
+#### `pure`
 
 ``` purescript
-send :: forall props state action. Self props state action -> action -> Effect Unit
+pure :: forall a x m. IxApplicative m => a -> m x x a
 ```
 
-Dispatch an `action` into the component to be handled by `update`.
-
-__*See also:* `update`, `capture`__
-
-#### `sendAsync`
+#### `RenderJSX`
 
 ``` purescript
-sendAsync :: forall props state action. Self props state action -> Aff action -> Effect Unit
+data RenderJSX :: Type -> Type
 ```
 
-Convenience function for sending an action when an `Aff` completes.
-
-__*Note:* Potential failure should be handled in the given `Aff` and converted
-  to an action, as the default error handler will simply log the   error to
-  the console.__
-
-__*See also:* `send`__
-
-#### `capture`
+#### `render`
 
 ``` purescript
-capture :: forall props state action a. Self props state action -> EventFn SyntheticEvent a -> (a -> action) -> EventHandler
+render :: forall hooks. JSX -> Render hooks (RenderJSX hooks) JSX
 ```
 
-Create a capturing\* `EventHandler` to send an action when an event occurs. For
-more complicated event handlers requiring `Effect`, use `handler` from `React.Basic.Events`.
-
-__\*calls `preventDefault` and `stopPropagation`__
-
-__*See also:* `update`, `capture_`, `monitor`, `React.Basic.Events`__
-
-#### `capture_`
+#### `CreateComponent`
 
 ``` purescript
-capture_ :: forall props state action. Self props state action -> action -> EventHandler
+type CreateComponent props hooks = Effect (Component props hooks)
 ```
-
-Like `capture`, but for actions which don't need to extract information from the Event.
-
-__*See also:* `update`, `capture`, `monitor_`__
-
-#### `monitor`
-
-``` purescript
-monitor :: forall props state action a. Self props state action -> EventFn SyntheticEvent a -> (a -> action) -> EventHandler
-```
-
-Like `capture`, but does not cancel the event.
-
-__*See also:* `update`, `capture`, `monitor\_`__
-
-#### `monitor_`
-
-``` purescript
-monitor_ :: forall props state action. Self props state action -> action -> EventHandler
-```
-
-Like `capture_`, but does not cancel the event.
-
-__*See also:* `update`, `monitor`, `capture_`, `React.Basic.Events`__
-
-#### `readProps`
-
-``` purescript
-readProps :: forall props state action. Self props state action -> Effect props
-```
-
-Read the most up to date `props` directly from the component instance
-associated with this `Self`.
-
-_Note: This function is for specific, asynchronous edge cases.
-  Generally, the `props` snapshot on `Self` is sufficient.
-
-__*See also:* `Self`__
-
-#### `readState`
-
-``` purescript
-readState :: forall props state action. Self props state action -> Effect state
-```
-
-Read the most up to date `state` directly from the component instance
-associated with this `Self`.
-
-_Note: This function is for specific, asynchronous edge cases.
-  Generally, the `state` snapshot on `Self` is sufficient.
-
-__*See also:* `Self`__
-
-#### `make`
-
-``` purescript
-make :: forall props state action. ComponentSpec props state state action -> props -> JSX
-```
-
-Turn a `Component` into a usable render function.
-This is where you will want to provide customized implementations:
-
-```purs
-component :: Component
-component = createComponent "Counter"
-
-type Props =
-  { label :: String
-  }
-
-data Action
-  = Increment
-
-counter :: Props -> JSX
-counter = make component
-  { initialState = { counter: 0 }
-
-  , update = \self action -> case action of
-      Increment ->
-        Update self.state { counter = self.state.counter + 1 }
-
-  , render = \self ->
-      R.button
-        { onClick: capture_ self Increment
-        , children: [ R.text (self.props.label <> ": " <> show self.state.counter) ]
-        }
-  }
-```
-
-__*See also:* `makeStateless`, `createComponent`, `Component`, `ComponentSpec`__
-
-#### `makeStateless`
-
-``` purescript
-makeStateless :: forall props. ComponentSpec props Unit Unit Unit -> (props -> JSX) -> props -> JSX
-```
-
-Makes stateless component definition slightly less verbose:
-
-```purs
-component :: Component
-component = createComponent "Xyz"
-
-myComponent :: Props -> JSX
-myComponent = makeStateless component \props -> JSX
-```
-
-__*Note:* The only difference between a stateless React-Basic component and
-  a plain `props -> JSX` function is the presense of the component name
-  in React's dev tools and error stacks. It's just a conceptual boundary.
-  If this isn't important simply write a `props -> JSX` function.__
-
-__*See also:* `make`, `createComponent`, `Component`, `ComponentSpec`__
 
 #### `JSX`
 
@@ -336,6 +79,138 @@ __*Hint:* Many useful utility functions already exist for Monoids. For example,
 ``` purescript
 Semigroup JSX
 Monoid JSX
+```
+
+#### `component`
+
+``` purescript
+component :: forall hooks props. String -> (props -> Render Unit (RenderJSX hooks) JSX) -> CreateComponent props hooks
+```
+
+#### `RenderState`
+
+``` purescript
+data RenderState :: Type -> Type -> Type
+```
+
+#### `useState`
+
+``` purescript
+useState :: forall hooks state. state -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
+```
+
+#### `RenderEffect`
+
+``` purescript
+data RenderEffect :: Type -> Type
+```
+
+#### `useEffect`
+
+``` purescript
+useEffect :: forall hooks. Array Key -> Effect (Effect Unit) -> Render hooks (RenderEffect hooks) Unit
+```
+
+#### `RenderReducer`
+
+``` purescript
+data RenderReducer :: Type -> Type -> Type -> Type
+```
+
+#### `useReducer`
+
+``` purescript
+useReducer :: forall hooks state action. ToKey state => state -> (state -> action -> state) -> Render hooks (RenderReducer state action hooks) (Tuple state (action -> Effect Unit))
+```
+
+useReducer
+TODO: add note about conditionally updating state
+
+#### `RenderRef`
+
+``` purescript
+data RenderRef :: Type -> Type -> Type
+```
+
+#### `Ref`
+
+``` purescript
+data Ref :: Type -> Type
+```
+
+#### `readRef`
+
+``` purescript
+readRef :: forall a. Ref a -> Effect a
+```
+
+#### `readRefMaybe`
+
+``` purescript
+readRefMaybe :: forall a. Ref (Nullable a) -> Effect (Maybe a)
+```
+
+#### `writeRef`
+
+``` purescript
+writeRef :: forall a. Ref a -> a -> Effect Unit
+```
+
+#### `renderRef`
+
+``` purescript
+renderRef :: forall hooks a. Ref a -> Render hooks hooks a
+```
+
+#### `renderRefMaybe`
+
+``` purescript
+renderRefMaybe :: forall hooks a. Ref (Nullable a) -> Render hooks hooks (Maybe a)
+```
+
+#### `useRef`
+
+``` purescript
+useRef :: forall hooks a. a -> Render hooks (RenderRef a hooks) (Ref a)
+```
+
+#### `Key`
+
+``` purescript
+data Key
+```
+
+Keys represent values React uses to check for changes.
+This is done using JavaScript's reference equality (`===`),
+so complicated types may want to implement `ToKey` so that
+it returns a primative like a `String`. A timestamp appended
+to a unique ID, for example. Less strict cases can implement
+`ToKey` using `unsafeToKey`, while some extreme cases may
+need a hashing or stringifying mechanism.
+
+#### `ToKey`
+
+``` purescript
+class ToKey a  where
+  toKey :: a -> Key
+```
+
+##### Instances
+``` purescript
+ToKey String
+ToKey Int
+ToKey Number
+ToKey Boolean
+ToKey {  | a }
+ToKey (Array a)
+ToKey (Nullable a)
+ToKey (Maybe a)
+```
+
+#### `unsafeToKey`
+
+``` purescript
+unsafeToKey :: forall a. a -> Key
 ```
 
 #### `empty`
@@ -375,68 +250,108 @@ __*See also:* `JSX`__
 #### `element`
 
 ``` purescript
-element :: forall props. ReactComponent {  | props } -> {  | props } -> JSX
+element :: forall hooks props. Component {  | props } hooks -> {  | props } -> JSX
 ```
 
-Create a `JSX` node from a `ReactComponent`, by providing the props.
+Create a `JSX` node from a `Component`, by providing the props.
 
 This function is for non-React-Basic React components, such as those
 imported from FFI.
 
-__*See also:* `ReactComponent`, `elementKeyed`__
+__*See also:* `Component`, `elementKeyed`__
 
 #### `elementKeyed`
 
 ``` purescript
-elementKeyed :: forall props. ReactComponent {  | props } -> { key :: String | props } -> JSX
+elementKeyed :: forall hooks props. Component {  | props } hooks -> { key :: String | props } -> JSX
 ```
 
-Create a `JSX` node from a `ReactComponent`, by providing the props and a key.
+Create a `JSX` node from a `Component`, by providing the props and a key.
 
 This function is for non-React-Basic React components, such as those
 imported from FFI.
 
-__*See also:* `ReactComponent`, `element`, React's documentation regarding the special `key` prop__
+__*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 
-#### `ReactComponent`
-
-``` purescript
-data ReactComponent props
-```
-
-Represents a traditional React component. Useful for JavaScript interop and
-FFI. For example:
-
-```purs
-foreign import ComponentRequiringJSHacks :: ReactComponent { someProp :: String }
-```
-
-__*See also:* `element`, `toReactComponent`__
-
-#### `ReactComponentInstance`
+#### `displayName`
 
 ``` purescript
-data ReactComponentInstance
+displayName :: forall hooks props. Component props hooks -> String
 ```
 
-An opaque representation of a React component's instance (`this` in the JavaScript
-React paradigm). It exists as an escape hatch to unsafe behavior. Use it with
-caution.
+Retrieve the Display Name from a `ComponentSpec`. Useful for debugging and improving
+error messages in logs.
 
-#### `toReactComponent`
+__*See also:* `displayNameFromSelf`, `createComponent`__
+
+
+### Re-exported from Data.Tuple:
+
+#### `Tuple`
 
 ``` purescript
-toReactComponent :: forall jsProps props state action. ({  | jsProps } -> props) -> ComponentSpec props state state action -> ReactComponent {  | jsProps }
+data Tuple a b
+  = Tuple a b
 ```
 
-Convert a React-Basic `ComponentSpec` to a JavaScript-friendly React component.
-This function should only be used for JS interop and not normal React-Basic usage.
+A simple product type for wrapping a pair of component values.
 
-__*Note:* Like `createComponent`, `toReactComponent` is side effecting in that
-  it creates a "class" React will see as unique each time it's called. Lift
-  any usage up to the module level, usage in `render` or any other function,
-  and applying any type classes to the `props`.__
+##### Instances
+``` purescript
+(Show a, Show b) => Show (Tuple a b)
+(Eq a, Eq b) => Eq (Tuple a b)
+(Eq a) => Eq1 (Tuple a)
+(Ord a, Ord b) => Ord (Tuple a b)
+(Ord a) => Ord1 (Tuple a)
+(Bounded a, Bounded b) => Bounded (Tuple a b)
+Semigroupoid Tuple
+(Semigroup a, Semigroup b) => Semigroup (Tuple a b)
+(Monoid a, Monoid b) => Monoid (Tuple a b)
+(Semiring a, Semiring b) => Semiring (Tuple a b)
+(Ring a, Ring b) => Ring (Tuple a b)
+(CommutativeRing a, CommutativeRing b) => CommutativeRing (Tuple a b)
+(HeytingAlgebra a, HeytingAlgebra b) => HeytingAlgebra (Tuple a b)
+(BooleanAlgebra a, BooleanAlgebra b) => BooleanAlgebra (Tuple a b)
+Functor (Tuple a)
+FunctorWithIndex Unit (Tuple a)
+Invariant (Tuple a)
+Bifunctor Tuple
+(Semigroup a) => Apply (Tuple a)
+Biapply Tuple
+(Monoid a) => Applicative (Tuple a)
+Biapplicative Tuple
+(Semigroup a) => Bind (Tuple a)
+(Monoid a) => Monad (Tuple a)
+Extend (Tuple a)
+Comonad (Tuple a)
+(Lazy a, Lazy b) => Lazy (Tuple a b)
+Foldable (Tuple a)
+Foldable1 (Tuple a)
+FoldableWithIndex Unit (Tuple a)
+Bifoldable Tuple
+Traversable (Tuple a)
+Traversable1 (Tuple a)
+TraversableWithIndex Unit (Tuple a)
+Bitraversable Tuple
+(TypeEquals a Unit) => Distributive (Tuple a)
+```
 
-__*See also:* `ReactComponent`__
+### Re-exported from Data.Tuple.Nested:
 
+#### `tuple2`
+
+``` purescript
+tuple2 :: forall a b. a -> b -> Tuple2 a b
+```
+
+Given 2 values, creates a 2-tuple.
+
+#### `(/\)`
+
+``` purescript
+infixr 6 Tuple as /\
+```
+
+Shorthand for constructing n-tuples as nested pairs.
+`a /\ b /\ c /\ d /\ unit` becomes `Tuple a (Tuple b (Tuple c (Tuple d unit)))`
 

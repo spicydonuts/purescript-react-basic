@@ -6,7 +6,7 @@ import React.Basic (CreateComponent, component, element, render)
 import React.Basic.DOM as R
 import ToggleButton (mkToggleButton)
 
-mkToggleButtonContainer :: CreateComponent {}
+mkToggleButtonContainer :: CreateComponent {} Unit
 mkToggleButtonContainer = do
   toggleButton <- mkToggleButton
 

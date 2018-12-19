@@ -3,12 +3,12 @@ module Counter where
 import Prelude
 
 import Effect (Effect)
-import React.Basic (CreateComponent, component, render, toKey, useEffect, useState, (/\))
+import React.Basic (CreateComponent, RenderEffect, RenderState, component, render, toKey, useEffect, useState, (/\))
 import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture_)
 
-mkCounter :: CreateComponent {}
+mkCounter :: CreateComponent {} (RenderEffect (RenderState Int Unit))
 mkCounter = do
   component "Counter" \props -> React.do
     counter /\ setCounter <- useState 0
