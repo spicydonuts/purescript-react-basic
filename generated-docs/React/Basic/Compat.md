@@ -1,15 +1,15 @@
 ## Module React.Basic.Compat
 
-#### `RenderStatefulComponent`
+#### `UseStatefulComponent`
 
 ``` purescript
-type RenderStatefulComponent state = RenderEffect (RenderState state Unit)
+type UseStatefulComponent state = UseEffect (UseState state Unit)
 ```
 
 #### `component`
 
 ``` purescript
-component :: forall props state. { displayName :: String, initialState :: {  | state }, receiveProps :: { props :: {  | props }, state :: {  | state }, setState :: ({  | state } -> {  | state }) -> Effect Unit } -> Effect Unit, render :: { props :: {  | props }, state :: {  | state }, setState :: ({  | state } -> {  | state }) -> Effect Unit } -> JSX } -> Component {  | props } (RenderStatefulComponent {  | state })
+component :: forall props state. { displayName :: String, initialState :: {  | state }, receiveProps :: { props :: {  | props }, state :: {  | state }, setState :: ({  | state } -> {  | state }) -> Effect Unit } -> Effect Unit, render :: { props :: {  | props }, state :: {  | state }, setState :: ({  | state } -> {  | state }) -> Effect Unit } -> JSX } -> Component {  | props } (UseStatefulComponent {  | state })
 ```
 
 Supports a common subset of the v2 API to ease the upgrade process
@@ -25,16 +25,16 @@ Supports a common subset of the v2 API to ease the upgrade process
 
 ### Re-exported from React.Basic:
 
-#### `RenderState`
+#### `UseState`
 
 ``` purescript
-data RenderState :: Type -> Type -> Type
+data UseState :: Type -> Type -> Type
 ```
 
-#### `RenderEffect`
+#### `UseEffect`
 
 ``` purescript
-data RenderEffect :: Type -> Type
+data UseEffect :: Type -> Type
 ```
 
 #### `JSX`
@@ -67,6 +67,8 @@ Monoid JSX
 ``` purescript
 newtype Component props hooks
 ```
+
+A React component
 
 #### `keyed`
 
@@ -109,9 +111,6 @@ elementKeyed :: forall hooks props. Component {  | props } hooks -> { key :: Str
 ```
 
 Create a `JSX` node from a `Component`, by providing the props and a key.
-
-This function is for non-React-Basic React components, such as those
-imported from FFI.
 
 __*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 

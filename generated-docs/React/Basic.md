@@ -6,55 +6,17 @@
 newtype Component props hooks
 ```
 
-#### `Render`
-
-``` purescript
-newtype Render x y a
-```
-
-##### Instances
-``` purescript
-IxFunctor Render
-IxApply Render
-IxBind Render
-IxApplicative Render
-```
-
-#### `bind`
-
-``` purescript
-bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
-```
-
-#### `discard`
-
-``` purescript
-discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
-```
-
-#### `pure`
-
-``` purescript
-pure :: forall a x m. IxApplicative m => a -> m x x a
-```
-
-#### `RenderJSX`
-
-``` purescript
-data RenderJSX :: Type -> Type
-```
-
-#### `render`
-
-``` purescript
-render :: forall hooks. JSX -> Render hooks (RenderJSX hooks) JSX
-```
+A React component
 
 #### `CreateComponent`
 
 ``` purescript
 type CreateComponent props hooks = Effect (Component props hooks)
 ```
+
+Alias for convenience. Creating components is effectful because
+React uses the function instance as the component's "identity"
+or "type".
 
 #### `JSX`
 
@@ -84,52 +46,51 @@ Monoid JSX
 #### `component`
 
 ``` purescript
-component :: forall hooks props. String -> (props -> Render Unit (RenderJSX hooks) JSX) -> CreateComponent props hooks
+component :: forall hooks props. String -> (props -> Render Unit hooks JSX) -> CreateComponent props hooks
 ```
 
-#### `RenderState`
+Create a React component given a display name and render function.
+
+#### `UseState`
 
 ``` purescript
-data RenderState :: Type -> Type -> Type
+data UseState :: Type -> Type -> Type
 ```
 
 #### `useState`
 
 ``` purescript
-useState :: forall hooks state. state -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
+useState :: forall hooks state. state -> Render hooks (UseState state hooks) (Tuple state ((state -> state) -> Effect Unit))
 ```
 
-#### `RenderEffect`
+#### `UseEffect`
 
 ``` purescript
-data RenderEffect :: Type -> Type
+data UseEffect :: Type -> Type
 ```
 
 #### `useEffect`
 
 ``` purescript
-useEffect :: forall hooks. Array Key -> Effect (Effect Unit) -> Render hooks (RenderEffect hooks) Unit
+useEffect :: forall hooks. Array Key -> Effect (Effect Unit) -> Render hooks (UseEffect hooks) Unit
 ```
 
-#### `RenderReducer`
+#### `UseReducer`
 
 ``` purescript
-data RenderReducer :: Type -> Type -> Type -> Type
+data UseReducer :: Type -> Type -> Type -> Type
 ```
 
 #### `useReducer`
 
 ``` purescript
-useReducer :: forall hooks state action. ToKey state => state -> (state -> action -> state) -> Render hooks (RenderReducer state action hooks) (Tuple state (action -> Effect Unit))
+useReducer :: forall hooks state action. ToKey state => state -> (state -> action -> state) -> Render hooks (UseReducer state action hooks) (Tuple state (action -> Effect Unit))
 ```
 
-useReducer
-TODO: add note about conditionally updating state
-
-#### `RenderRef`
+#### `UseRef`
 
 ``` purescript
-data RenderRef :: Type -> Type -> Type
+data UseRef :: Type -> Type -> Type
 ```
 
 #### `Ref`
@@ -171,7 +132,7 @@ renderRefMaybe :: forall hooks a. Ref (Nullable a) -> Render hooks hooks (Maybe 
 #### `useRef`
 
 ``` purescript
-useRef :: forall hooks a. a -> Render hooks (RenderRef a hooks) (Ref a)
+useRef :: forall hooks a. a -> Render hooks (UseRef a hooks) (Ref a)
 ```
 
 #### `Key`
@@ -225,6 +186,43 @@ on the parent node.
 
 __*See also:* `JSX`, Monoid `guard`__
 
+#### `Render`
+
+``` purescript
+newtype Render x y a
+```
+
+Render represents the effects allowed within a React component's
+body, i.e. during "render". This includes hooks and ends with
+returning JSX (see `pure`), but does not allow arbitrary side
+effects.
+
+##### Instances
+``` purescript
+IxFunctor Render
+IxApply Render
+IxBind Render
+IxApplicative Render
+```
+
+#### `bind`
+
+``` purescript
+bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+```
+
+#### `discard`
+
+``` purescript
+discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+```
+
+#### `pure`
+
+``` purescript
+pure :: forall a x m. IxApplicative m => a -> m x x a
+```
+
 #### `keyed`
 
 ``` purescript
@@ -268,9 +266,6 @@ elementKeyed :: forall hooks props. Component {  | props } hooks -> { key :: Str
 
 Create a `JSX` node from a `Component`, by providing the props and a key.
 
-This function is for non-React-Basic React components, such as those
-imported from FFI.
-
 __*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 
 #### `displayName`
@@ -279,10 +274,10 @@ __*See also:* `Component`, `element`, React's documentation regarding the specia
 displayName :: forall hooks props. Component props hooks -> String
 ```
 
-Retrieve the Display Name from a `ComponentSpec`. Useful for debugging and improving
+Retrieve the Display Name from a `Component`. Useful for debugging and improving
 error messages in logs.
 
-__*See also:* `displayNameFromSelf`, `createComponent`__
+__*See also:* `component`__
 
 
 ### Re-exported from Data.Tuple:

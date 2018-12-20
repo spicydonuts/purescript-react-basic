@@ -6,7 +6,7 @@ import Data.Int (round)
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable, null)
 import Math (pow, sqrt)
-import React.Basic (CreateComponent, Ref, Render, RenderEffect, RenderRef, RenderState, Tuple, component, fragment, readRefMaybe, render, useEffect, useRef, useState, (/\))
+import React.Basic (CreateComponent, Ref, Render, UseEffect, UseRef, UseState, Tuple, component, fragment, readRefMaybe, useEffect, useRef, useState, (/\))
 import React.Basic as React
 import React.Basic.DOM as R
 import Unsafe.Coerce (unsafeCoerce)
@@ -18,7 +18,7 @@ import Web.HTML.HTMLElement (getBoundingClientRect)
 import Web.HTML.HTMLElement as HTMLElement
 import Web.HTML.Window as Window
 
-mkRefs :: CreateComponent {} (RenderNodeDistance (RenderNodeDistance (RenderNodeDistance Unit)))
+mkRefs :: CreateComponent {} (UseNodeDistance (UseNodeDistance (UseNodeDistance Unit)))
 mkRefs = do
   component "Refs" \props -> React.do
 
@@ -26,7 +26,7 @@ mkRefs = do
       mouseDistance2 /\ buttonRef2 <- useNodeDistanceFromMouse
       mouseDistance3 /\ buttonRef3 <- useNodeDistanceFromMouse
 
-      render $ fragment
+      React.pure $ fragment
         [ R.button
             { ref: buttonRef1
             , children: [ R.text $ show mouseDistance1 <> "px" ]
@@ -44,13 +44,13 @@ mkRefs = do
             }
         ]
 
-type RenderNodeDistance hooks = RenderEffect (RenderState Int (RenderRef (Nullable Node) hooks))
+type UseNodeDistance hooks = UseEffect (UseState Int (UseRef (Nullable Node) hooks))
 
 useNodeDistanceFromMouse
   :: forall hooks
    . Render
        hooks
-       (RenderNodeDistance hooks)
+       (UseNodeDistance hooks)
        (Tuple Int (Ref (Nullable Node)))
 useNodeDistanceFromMouse = React.do
   elementRef <- useRef null

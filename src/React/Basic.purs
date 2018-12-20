@@ -1,21 +1,15 @@
 module React.Basic
   ( Component
-  , Render
-  , bind
-  , discard
-  , pure
-  , RenderJSX
-  , render
   , CreateComponent
   , JSX
   , component
-  , RenderState
+  , UseState
   , useState
-  , RenderEffect
+  , UseEffect
   , useEffect
-  , RenderReducer
+  , UseReducer
   , useReducer
-  , RenderRef
+  , UseRef
   , Ref
   , readRef
   , readRefMaybe
@@ -28,6 +22,10 @@ module React.Basic
   , toKey
   , unsafeToKey
   , empty
+  , Render
+  , bind
+  , discard
+  , pure
   , keyed
   , fragment
   , element
@@ -53,89 +51,64 @@ import Effect.Uncurried (EffectFn1, EffectFn2, EffectFn3, mkEffectFn1, runEffect
 import Prelude (bind, pure) as Prelude
 import Unsafe.Coerce (unsafeCoerce)
 
+-- | A React component
 newtype Component props hooks = Component (EffectFn1 props JSX)
 
-newtype Render x y a = Render (Effect a)
-
-instance ixFunctorRender :: IxFunctor Render where
-  imap f (Render a) = Render (map f a)
-
-instance ixApplyRender :: IxApply Render where
-  iapply (Render f) (Render a) = Render (apply f a)
-
-instance ixBindRender :: IxBind Render where
-  ibind (Render m) f = Render (Prelude.bind m \a -> case f a of Render b -> b)
-
-bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
-bind = ibind
-
-discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
-discard = ibind
-
-pure :: forall a x m. IxApplicative m => a -> m x x a
-pure = ipure
-
-instance ixApplicativeRender :: IxApplicative Render where
-  ipure a = Render (Prelude.pure a)
-
+-- | Alias for convenience. Creating components is effectful because
+-- | React uses the function instance as the component's "identity"
+-- | or "type".
 type CreateComponent props hooks = Effect (Component props hooks)
 
+-- | Create a React component given a display name and render function.
 component
   :: forall hooks props
    . String
-  -> (props -> Render Unit (RenderJSX hooks) JSX)
+  -> (props -> Render Unit hooks JSX)
   -> CreateComponent props hooks
 component name renderFn =
   let c = Component (mkEffectFn1 (\props -> case renderFn props of Render a -> a))
    in runEffectFn2 unsafeSetDisplayName name c
 
-foreign import data RenderState :: Type -> Type -> Type
+foreign import data UseState :: Type -> Type -> Type
 
 useState
   :: forall hooks state
    . state
-  -> Render hooks (RenderState state hooks) (Tuple state ((state -> state) -> Effect Unit))
+  -> Render hooks (UseState state hooks) (Tuple state ((state -> state) -> Effect Unit))
 useState initialState = Render do
   runEffectFn2 useState_ (mkFn2 Tuple) initialState
 
-foreign import data RenderEffect :: Type -> Type
+foreign import data UseEffect :: Type -> Type
 
 useEffect
   :: forall hooks
    . Array Key
   -> Effect (Effect Unit)
-  -> Render hooks (RenderEffect hooks) Unit
+  -> Render hooks (UseEffect hooks) Unit
 useEffect keys effect = Render (runEffectFn2 useEffect_ effect keys)
 
-foreign import data RenderJSX :: Type -> Type
+foreign import data UseReducer :: Type -> Type -> Type -> Type
 
-render :: forall hooks. JSX -> Render hooks (RenderJSX hooks) JSX
-render jsx = Render (Prelude.pure jsx)
-
-foreign import data RenderReducer :: Type -> Type -> Type -> Type
-
--- | useReducer
--- | TODO: add note about conditionally updating state
 useReducer
   :: forall hooks state action
    . ToKey state
   => state
   -> (state -> action -> state)
-  -> Render hooks (RenderReducer state action hooks) (Tuple state (action -> Effect Unit))
+  -> Render hooks (UseReducer state action hooks) (Tuple state (action -> Effect Unit))
 useReducer initialState reducer = Render do
   runEffectFn3 useReducer_
     (mkFn2 Tuple)
     (mkFn2 reducer)
     initialState
 
-foreign import data RenderRef :: Type -> Type -> Type
+foreign import data UseRef :: Type -> Type -> Type
 
 foreign import data Ref :: Type -> Type
 
 useRef
   :: forall hooks a
    . a
-  -> Render hooks (RenderRef a hooks) (Ref a)
+  -> Render hooks (UseRef a hooks) (Ref a)
 useRef initialValue = Render do
   runEffectFn1 useRef_ initialValue
 
@@ -220,6 +193,33 @@ instance monoidJSX :: Monoid JSX where
 -- | __*See also:* `JSX`, Monoid `guard`__
 foreign import empty :: JSX
 
+-- | Render represents the effects allowed within a React component's
+-- | body, i.e. during "render". This includes hooks and ends with
+-- | returning JSX (see `pure`), but does not allow arbitrary side
+-- | effects.
+newtype Render x y a = Render (Effect a)
+
+instance ixFunctorRender :: IxFunctor Render where
+  imap f (Render a) = Render (map f a)
+
+instance ixApplyRender :: IxApply Render where
+  iapply (Render f) (Render a) = Render (apply f a)
+
+instance ixBindRender :: IxBind Render where
+  ibind (Render m) f = Render (Prelude.bind m \a -> case f a of Render b -> b)
+
+instance ixApplicativeRender :: IxApplicative Render where
+  ipure a = Render (Prelude.pure a)
+
+bind :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+bind = ibind
+
+discard :: forall a b x y z m. IxBind m => m x y a -> (a -> m y z b) -> m x z b
+discard = ibind
+
+pure :: forall a x m. IxApplicative m => a -> m x x a
+pure = ipure
+
 -- | Apply a React key to a subtree. React-Basic usually hides React's warning about
 -- | using `key` props on components in an Array, but keys are still important for
 -- | any dynamic lists of child components.
@@ -248,9 +248,6 @@ element (Component c) props = runFn2 element_ c props
 
 -- | Create a `JSX` node from a `Component`, by providing the props and a key.
 -- |
--- | This function is for non-React-Basic React components, such as those
--- | imported from FFI.
--- |
 -- | __*See also:* `Component`, `element`, React's documentation regarding the special `key` prop__
 elementKeyed
   :: forall hooks props
@@ -259,10 +256,10 @@ elementKeyed
   -> JSX
 elementKeyed = runFn2 elementKeyed_
 
--- | Retrieve the Display Name from a `ComponentSpec`. Useful for debugging and improving
+-- | Retrieve the Display Name from a `Component`. Useful for debugging and improving
 -- | error messages in logs.
 -- |
--- | __*See also:* `displayNameFromSelf`, `createComponent`__
+-- | __*See also:* `component`__
 foreign import displayName
   :: forall hooks props
    . Component props hooks

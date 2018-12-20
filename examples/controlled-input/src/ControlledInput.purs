@@ -4,19 +4,19 @@ import Prelude
 
 import Control.Applicative.Indexed (ipure)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import React.Basic (CreateComponent, Render, RenderState, component, fragment, render, useState, (/\))
+import React.Basic (CreateComponent, Render, UseState, component, fragment, useState, (/\))
 import React.Basic as React
 import React.Basic.DOM as R
 import React.Basic.DOM.Events (capture, targetValue, timeStamp)
 import React.Basic.Events (EventHandler, merge)
 
-mkControlledInput :: CreateComponent {} (RenderInput () (RenderInput () Unit))
+mkControlledInput :: CreateComponent {} (UseInput () (UseInput () Unit))
 mkControlledInput =
   component "ControlledInput" \props -> React.do
     firstName <- useInput "hello"
     lastName <- useInput "world"
 
-    render $ R.form_
+    React.pure $ R.form_
       [ renderInput firstName
       , renderInput lastName
       ]
@@ -30,12 +30,12 @@ mkControlledInput =
 
 type InputState state = { value :: String, lastChanged :: Maybe Number | state }
 
-type RenderInput state hooks = RenderState (InputState state) hooks
+type UseInput state hooks = UseState (InputState state) hooks
 useInput
   :: forall hooks
    . String
   -> Render hooks
-       (RenderInput () hooks)
+       (UseInput () hooks)
        (InputState ( onChange :: EventHandler ))
 useInput initialValue = React.do
   { value, lastChanged } /\ replaceState <- useState { value: initialValue, lastChanged: Nothing }
