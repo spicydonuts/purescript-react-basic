@@ -3,12 +3,6 @@
 var React = require("react");
 var Fragment = React.Fragment || "div";
 
-// foreign import useState_
-//   :: forall state
-//    . EffectFn2
-//        (forall a b. Fn2 a b (Tuple a b))
-//        state
-//        (Tuple state ((state -> state) -> Effect Unit))
 exports.useState_ = function(tuple, initialState) {
   var r = React.useState(initialState);
   var state = r[0];
@@ -20,21 +14,10 @@ exports.useState_ = function(tuple, initialState) {
   });
 };
 
-// foreign import useEffect_
-//   :: EffectFn2
-//        (Effect (Effect Unit))
-//        (Array Key)
-//        Unit
 exports.useEffect_ = React.useEffect;
 
-// foreign import useReducer_
-//   :: forall state action
-//    . EffectFn4
-//        (forall a b. Fn2 a b (Tuple a b))
-//        (Fn2 state action state)
-//        state
-//        (Nullable action)
-//        (Tuple state (action -> Effect Unit))
+exports.useLayoutEffect_ = React.useLayoutEffect;
+
 exports.useReducer_ = function(tuple, reducer, initialState, initialAction) {
   var r = React.useReducer(reducer, initialState, initialAction);
   var state = r[0];
@@ -55,6 +38,10 @@ exports.readRef_ = function(ref) {
 exports.writeRef_ = function(ref, a) {
   ref.current = a;
 };
+
+// exports.useContext_ = React.useContext;
+
+exports.useMemo_ = React.useMemo;
 
 exports.empty = null;
 

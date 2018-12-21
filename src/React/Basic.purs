@@ -7,6 +7,8 @@ module React.Basic
   , useState
   , UseEffect
   , useEffect
+  , UseLayoutEffect
+  , useLayoutEffect
   , UseReducer
   , useReducer
   , UseRef
@@ -17,6 +19,11 @@ module React.Basic
   , renderRef
   , renderRefMaybe
   , useRef
+  -- , UseContext
+  -- , Context
+  -- , useContext
+  , UseMemo
+  , useMemo
   , Key
   , class ToKey
   , toKey
@@ -87,6 +94,15 @@ useEffect
   -> Render hooks (UseEffect hooks) Unit
 useEffect keys effect = Render (runEffectFn2 useEffect_ effect keys)
 
+foreign import data UseLayoutEffect :: Type -> Type
+
+useLayoutEffect
+  :: forall hooks
+   . Array Key
+  -> Effect (Effect Unit)
+  -> Render hooks (UseLayoutEffect hooks) Unit
+useLayoutEffect keys effect = Render (runEffectFn2 useLayoutEffect_ effect keys)
+
 foreign import data UseReducer :: Type -> Type -> Type -> Type
 
 useReducer
@@ -126,6 +142,25 @@ renderRef ref = Render (readRef ref)
 
 renderRefMaybe :: forall hooks a. Ref (Nullable a) -> Render hooks hooks (Maybe a)
 renderRefMaybe a = Render (readRefMaybe a)
+
+-- foreign import data UseContext :: Type -> Type -> Type
+
+-- foreign import data Context :: Type -> Type
+
+-- useContext
+--   :: forall hooks a
+--    . Context a
+--   -> Render hooks (UseContext a hooks) a
+-- useContext context = Render (runEffectFn1 useContext_ context)
+
+foreign import data UseMemo :: Type -> Type -> Type
+
+useMemo
+  :: forall hooks a
+   . Array Key
+  -> (Unit -> a)
+  -> Render hooks (UseMemo a hooks) a
+useMemo keys factory = Render (runEffectFn2 useMemo_ factory keys)
 
 -- | Keys represent values React uses to check for changes.
 -- | This is done using JavaScript's reference equality (`===`),
@@ -288,6 +323,12 @@ foreign import useEffect_
        (Array Key)
        Unit
 
+foreign import useLayoutEffect_
+  :: EffectFn2
+       (Effect (Effect Unit))
+       (Array Key)
+       Unit
+
 foreign import useReducer_
   :: forall state action
    . EffectFn3
@@ -314,6 +355,19 @@ foreign import useRef_
    . EffectFn1
        a
        (Ref a)
+
+-- foreign import useContext_
+--   :: forall a
+--    . EffectFn1
+--        (Context a)
+--        a
+
+foreign import useMemo_
+  :: forall a
+   . EffectFn2
+       (Unit -> a)
+       (Array Key)
+       a
 
 foreign import keyed_ :: Fn2 String JSX JSX
 
