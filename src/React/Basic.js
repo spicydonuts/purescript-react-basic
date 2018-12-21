@@ -3,6 +3,8 @@
 var React = require("react");
 var Fragment = React.Fragment || "div";
 
+exports.memo_ = React.memo;
+
 exports.useState_ = function(tuple, initialState) {
   var r = React.useState(initialState);
   var state = r[0];

@@ -1,4 +1,4 @@
-# Legacy Example
+# Todo App Example
 
 ## Building
 

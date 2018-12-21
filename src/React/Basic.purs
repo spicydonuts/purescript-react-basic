@@ -3,6 +3,7 @@ module React.Basic
   , CreateComponent
   , JSX
   , component
+  , memo
   , UseState
   , useState
   , UseEffect
@@ -75,6 +76,12 @@ component
 component name renderFn =
   let c = Component (mkEffectFn1 (\props -> case renderFn props of Render a -> a))
    in runEffectFn2 unsafeSetDisplayName name c
+
+memo
+  :: forall hooks props
+   . CreateComponent hooks props
+  -> CreateComponent hooks props
+memo = flip Prelude.bind (runEffectFn1 memo_)
 
 foreign import data UseState :: Type -> Type -> Type
 
@@ -305,6 +312,12 @@ foreign import displayName
 -- |
 -- | Internal utility or FFI functions
 -- |
+
+foreign import memo_
+  :: forall hooks props
+   . EffectFn1
+       (Component props hooks)
+       (Component props hooks)
 
 foreign import unsafeSetDisplayName
   :: forall hooks props
