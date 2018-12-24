@@ -4,11 +4,11 @@ import Prelude
 
 import Control.Applicative.Indexed (ipure)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import React.Basic (CreateComponent, Render, UseState, component, fragment, useState, (/\))
-import React.Basic as React
-import React.Basic.DOM as R
-import React.Basic.DOM.Events (capture, targetValue, timeStamp)
-import React.Basic.Events (EventHandler, merge)
+import React.Basic.Hooks (CreateComponent, Render, UseState, component, fragment, useState, (/\))
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
+import React.Basic.Hooks.DOM.Events (capture, targetValue, timeStamp)
+import React.Basic.Hooks.Events (EventHandler, merge)
 
 mkControlledInput :: CreateComponent {} (UseInput () (UseInput () Unit))
 mkControlledInput =

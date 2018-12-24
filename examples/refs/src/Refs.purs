@@ -6,9 +6,9 @@ import Data.Int (round)
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable, null)
 import Math (pow, sqrt)
-import React.Basic (CreateComponent, Ref, Render, UseEffect, UseRef, UseState, Tuple, component, fragment, readRefMaybe, useEffect, useRef, useState, (/\))
-import React.Basic as React
-import React.Basic.DOM as R
+import React.Basic.Hooks (CreateComponent, Ref, Render, UseEffect, UseRef, UseState, Tuple, component, fragment, readRefMaybe, useEffect, useRef, useState, (/\))
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Node)
 import Web.Event.Event (EventType(..))

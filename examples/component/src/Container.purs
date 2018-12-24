@@ -2,9 +2,9 @@ module Container where
 
 import Prelude
 
-import React.Basic (CreateComponent, component, element)
-import React.Basic as React
-import React.Basic.DOM as R
+import React.Basic.Hooks (CreateComponent, component, element)
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
 import ToggleButton (mkToggleButton)
 
 mkToggleButtonContainer :: CreateComponent {} Unit

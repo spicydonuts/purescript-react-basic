@@ -1,4 +1,4 @@
-## Module React.Basic.DOM.Generated
+## Module React.Basic.Hooks.DOM.Generated
 
 ----------------------------------------
 THIS FILE IS GENERATED -- DO NOT EDIT IT

@@ -6,11 +6,11 @@ import Data.Array as Array
 import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import React.Basic (CreateComponent, UseReducer, UseState, component, element, elementKeyed, empty, memo, useReducer, useState, (/\))
-import React.Basic as React
-import React.Basic.DOM as R
-import React.Basic.DOM.Events (capture, capture_, targetValue)
-import React.Basic.Events as Events
+import React.Basic.Hooks (CreateComponent, UseReducer, UseState, component, element, elementKeyed, empty, memo, useReducer, useState, (/\))
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
+import React.Basic.Hooks.DOM.Events (capture, capture_, targetValue)
+import React.Basic.Hooks.Events as Events
 
 data Action
   = CreateTodo String

@@ -1,4 +1,4 @@
-module React.Basic.Events
+module React.Basic.Hooks.Events
   ( EventHandler
   , SyntheticEvent
   , EventFn

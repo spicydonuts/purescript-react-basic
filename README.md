@@ -25,9 +25,9 @@ module Counter where
 
 import Prelude
 
-import React.Basic as React
-import React.Basic.DOM as R
-import React.Basic.Events as Events
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
+import React.Basic.Hooks.Events as Events
 
 -- The props for the component
 type Props =

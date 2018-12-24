@@ -1,4 +1,4 @@
-## Module React.Basic.DOM.Events
+## Module React.Basic.Hooks.DOM.Events
 
 This module defines safe DOM event function and property accessors.
 

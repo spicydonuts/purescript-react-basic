@@ -1,4 +1,4 @@
-module React.Basic
+module React.Basic.Hooks
   ( Component
   , CreateComponent
   , JSX

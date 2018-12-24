@@ -1,6 +1,6 @@
 -- | This module defines safe DOM event function and property accessors.
 
-module React.Basic.DOM.Events
+module React.Basic.Hooks.DOM.Events
   ( capture
   , capture_
   , bubbles
@@ -48,7 +48,7 @@ import Data.Maybe (Maybe)
 import Data.Nullable (toMaybe)
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
-import React.Basic.Events (EventFn, EventHandler, SyntheticEvent, handler, unsafeEventFn)
+import React.Basic.Hooks.Events (EventFn, EventHandler, SyntheticEvent, handler, unsafeEventFn)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Internal.Types (Event, EventTarget)
 

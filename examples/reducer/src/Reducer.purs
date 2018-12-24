@@ -2,10 +2,10 @@ module Reducer where
 
 import Prelude
 
-import React.Basic (CreateComponent, UseReducer, component, fragment, useReducer, (/\))
-import React.Basic as React
-import React.Basic.DOM as R
-import React.Basic.DOM.Events (capture_)
+import React.Basic.Hooks (CreateComponent, UseReducer, component, fragment, useReducer, (/\))
+import React.Basic.Hooks as React
+import React.Basic.Hooks.DOM as R
+import React.Basic.Hooks.DOM.Events (capture_)
 
 data Action
   = Increment

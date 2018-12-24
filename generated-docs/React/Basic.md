@@ -1,4 +1,4 @@
-## Module React.Basic
+## Module React.Basic.Hooks
 
 #### `Component`
 

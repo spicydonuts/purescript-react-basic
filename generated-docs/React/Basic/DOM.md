@@ -1,4 +1,4 @@
-## Module React.Basic.DOM
+## Module React.Basic.Hooks.DOM
 
 This module defines helper functions for creating virtual DOM elements
 safely.
@@ -119,7 +119,7 @@ style: mergeCSS [ (css { padding: "5px" }), props.style ]
 ```
 
 
-### Re-exported from React.Basic.DOM.Generated:
+### Re-exported from React.Basic.Hooks.DOM.Generated:
 
 #### `Props_wbr`
 
@@ -2161,7 +2161,7 @@ a_ :: Array JSX -> JSX
 a :: forall attrs attrs_. Union attrs attrs_ (SharedProps Props_a) => {  | attrs } -> JSX
 ```
 
-### Re-exported from React.Basic.DOM.Internal:
+### Re-exported from React.Basic.Hooks.DOM.Internal:
 
 #### `SharedProps`
 

@@ -1,4 +1,4 @@
-## Module React.Basic.Compat
+## Module React.Basic.Hooks.Compat
 
 #### `UseStatefulComponent`
 
@@ -23,7 +23,7 @@ stateless :: forall props. { displayName :: String, render :: {  | props } -> JS
 Supports a common subset of the v2 API to ease the upgrade process
 
 
-### Re-exported from React.Basic:
+### Re-exported from React.Basic.Hooks:
 
 #### `UseState`
 

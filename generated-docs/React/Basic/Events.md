@@ -1,4 +1,4 @@
-## Module React.Basic.Events
+## Module React.Basic.Hooks.Events
 
 #### `EventHandler`
 

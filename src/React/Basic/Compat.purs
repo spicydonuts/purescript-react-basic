@@ -1,16 +1,16 @@
-module React.Basic.Compat
+module React.Basic.Hooks.Compat
   ( UseStatefulComponent
   , component
   , stateless
-  , module React.Basic
+  , module React.Basic.Hooks
   ) where
 
 import Prelude
 
 import Effect (Effect)
 import Effect.Unsafe (unsafePerformEffect)
-import React.Basic (Component, JSX, UseEffect, UseState, element, elementKeyed, empty, fragment, keyed)
-import React.Basic (Tuple(..), bind, discard, pure, component, toKey, useEffect, useState) as React
+import React.Basic.Hooks (Component, JSX, UseEffect, UseState, element, elementKeyed, empty, fragment, keyed)
+import React.Basic.Hooks (Tuple(..), bind, discard, pure, component, toKey, useEffect, useState) as React
 
 type UseStatefulComponent state = (UseEffect (UseState state Unit))
 

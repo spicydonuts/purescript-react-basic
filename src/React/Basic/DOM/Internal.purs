@@ -1,10 +1,10 @@
-module React.Basic.DOM.Internal where
+module React.Basic.Hooks.DOM.Internal where
 
 import Prelude
 
 import Data.Nullable (Nullable)
-import React.Basic (Component, Ref)
-import React.Basic.Events (EventHandler)
+import React.Basic.Hooks (Component, Ref)
+import React.Basic.Hooks.Events (EventHandler)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.DOM (Node)
 

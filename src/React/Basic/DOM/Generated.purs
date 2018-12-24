@@ -2,12 +2,12 @@
 -- | THIS FILE IS GENERATED -- DO NOT EDIT IT
 -- | ----------------------------------------
 
-module React.Basic.DOM.Generated where
+module React.Basic.Hooks.DOM.Generated where
 
 import Prim.Row (class Union)
-import React.Basic (JSX, element)
-import React.Basic.DOM.Internal (SharedProps, unsafeCreateDOMComponent)
-import React.Basic.Events (EventHandler)
+import React.Basic.Hooks (JSX, element)
+import React.Basic.Hooks.DOM.Internal (SharedProps, unsafeCreateDOMComponent)
+import React.Basic.Hooks.Events (EventHandler)
 
 type Props_a =
   ( children :: Array JSX

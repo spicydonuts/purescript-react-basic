@@ -2,9 +2,9 @@ module LegacyCounter where
 
 import Prelude
 
-import React.Basic.Compat (Component, UseStatefulComponent, component, element, stateless)
-import React.Basic.DOM as R
-import React.Basic.Events as Events
+import React.Basic.Hooks.Compat (Component, UseStatefulComponent, component, element, stateless)
+import React.Basic.Hooks.DOM as R
+import React.Basic.Hooks.Events as Events
 
 type Props =
   { label :: String

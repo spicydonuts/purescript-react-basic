@@ -1,4 +1,4 @@
-## Module React.Basic.DOM.Internal
+## Module React.Basic.Hooks.DOM.Internal
 
 #### `CSS`
 
